@@ -178,9 +178,12 @@ namespace Deveel.Authentication {
 			var requestBody = new {
 				grant_type = "authorization_code",
 				code = authorizationCode.Code,
-				redirect_uri = authorizationCode.RedirectUri.ToString(),
+				redirect_uri = authorizationCode.RedirectUri != null 
+					? HttpUtility.UrlEncode(authorizationCode.RedirectUri.ToString())
+					: null,
 				client_id = authorizationCode.ClientId,
-				client_secret = authorizationCode.ClientSecret
+				client_secret = authorizationCode.ClientSecret,
+				audience = authorizationCode.Audience
 			};
 
 			return GetAccessTokenAsync(requestBody, cancellationToken);
@@ -190,7 +193,6 @@ namespace Deveel.Authentication {
 			var scope = clientCredentials.Scopes != null && clientCredentials.Scopes.Count > 0
 						? string.Join(" ", clientCredentials.Scopes)
 						: null;
-
 
 			var requestBody = new {
 				client_id = clientCredentials.ClientId,
