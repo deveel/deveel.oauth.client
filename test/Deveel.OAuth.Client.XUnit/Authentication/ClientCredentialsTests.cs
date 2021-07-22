@@ -47,7 +47,6 @@ namespace Deveel.Authentication {
 		}
 
 		public void Dispose() {
-			testClient?.Dispose();
 		}
 	}
 }
