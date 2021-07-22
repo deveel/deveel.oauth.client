@@ -26,9 +26,75 @@ The core library is developed as a **[.NET Standard 2.1](https://github.com/dotn
 
 ### OAuth2 Client Credentials Flow
 
+When an application tries to access resources provided by a service (the _resource server_), the process of granting is not interactive, like in the case of the _Authorization Code_ flow: this means that the credentials of the machine are sent alltogether in one request.
+
+``` csharp
+public static async Task Main(string[] args) {
+  var options = new OAuthClientOptions {
+    TokenUrl = "https://secure.example.com/oauth/token"
+  };
+  
+  const string clientId = "<client id>";
+  const string clientSecret = "<client super-secret word>";
+  
+  OAuthAccessToken token;
+  
+  using(var client = new OAuthAuthenticationClient(options)) {
+    token = await client.RequestAccessTokenAsync(new OAuthClientCredentials(clientId, clientSecret) {
+      Scopes = new[]{ "read:user" }
+    });
+  }
+  
+  Console.Out.WriteLine("Obtained a new Access Token");
+  Console.Out.WriteLine($"Token Type: {token.TokenType}");
+  Console.Out.WriteLine($"Access Token: {token.AccessToken}");
+  Console.Out.WriteLine($"Expires At: {token.ExpiresAt}");
+}
+```
+
 ### OAuth2 Refresh Token
 
 ### OAuth2 Authorization Code Flow
+
+The _Authorization Code_ flow is an interactive process that ensures the credentials of the consumer of a client application (a website or a mobile application) are not known to the application itself: this allows the user to own the resources provided by the remote service, sharing with the application a temporary code to let it to access it.
+
+This process consists of two phases:
+
+1. Obtaining the URL where to redirect the user of the application
+2. Use the code returned by the authentication server to the user to obtain an access token
+
+''' csharp
+var options = new OAuthClientOptions {
+  AuthorizationUrl = "https://secure.example.com/authorize",
+  TokenUrl = "https://secure.example.com/token"
+};
+
+var client = new OAuthAuthenticationClient(options);
+
+
+// Phase 1 - Obtain the Redirect URL
+
+const string clientId = "<client id>";
+const string clientSecret = "<client super-secret word>";
+  
+var redirectUri = new Uri("https://example.com/authenticate"); 
+
+var authUrl = client.GetRedirectUri(new OAuthAuthorizationCodeInfo(clientId, redirectUri) {
+  State = "ye36223",
+  Scopes = new [] { "photos" }
+});
+  
+...
+  
+// Phase 2 - Obtain the access token
+
+var code = "<code returned by the server to the user>";
+var accessToken = client.RequestAccessToken(new OAuthAuthorizationCode(clientId, clientSecret, code) {
+   RedirectUri = redirectUri
+});
+
+'''
+
 
 ### Microsoft Rest Service Credentials
 
