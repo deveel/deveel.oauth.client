@@ -14,6 +14,9 @@
     <RepositoryType>git</RepositoryType>
     <Description>This library provides helpers to obtain access tokens from identity providers, using OAuth2 authentication flows. An implementation of the Microsoft Service Client Credentials and a token cache is also provided, to allow an efficient process of renewal of tokens and authenticating REST clients</Description>
     <PackageTags>dotnet oauth oauth2 client access credentials</PackageTags>
+    <Version>0.7.5</Version>
+    <PackageReleaseNotes>- Initial base classes and functions
+- Missing refresh token function</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

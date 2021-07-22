@@ -13,8 +13,6 @@ using Xunit;
 
 namespace Deveel.Authentication {
 	public class ClientCredentialsTests : IDisposable {
-		private HttpClient testClient;
-
 		private HttpClient GetClient(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> callback) {
 			var handler = new Mock<HttpMessageHandler>();
 			handler.Protected().Setup<Task<HttpResponseMessage>>("SendAsync",
@@ -39,7 +37,7 @@ namespace Deveel.Authentication {
 			});
 
 			var authClient = new OAuthAuthenticationClient(httpClient, new OAuthClientOptions { TokenUrl = "https://secure.example.com/token" });
-			var authResponse = await authClient.RequestAsync(new OAuthClientCredentialsRequest(Guid.NewGuid().ToString(), Guid.NewGuid().ToString("N")) {
+			var authResponse = await authClient.RequestAccessTokenAsync(new OAuthClientCredentialsRequest(Guid.NewGuid().ToString(), Guid.NewGuid().ToString("N")) {
 				Scopes = new[] { "read:user" }
 			});
 

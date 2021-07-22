@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 
 using Microsoft.Extensions.Options;
 
@@ -53,7 +54,26 @@ namespace Deveel.Authentication {
 
 		public OAuthClientOptions Options { get; }
 
-		public async Task<OAuthAccessToken> RequestAsync(OAuthAuthenticationRequest request, CancellationToken cancellationToken = default) {
+		public Uri GetAuthorizationUrl(OAuthAuthenticationCodeInfo authenticationInfo) {
+			var uriBuilder = new UriBuilder(Options.AuthorizeUrl);
+
+			var queryString = new StringBuilder();
+			queryString.Append($"client_id={authenticationInfo.ClientId}");
+			queryString.Append("&response_type=code");
+			queryString.Append($"&redirect_uri={HttpUtility.UrlEncode(authenticationInfo.RedirectUri.ToString())}");
+
+			if (!String.IsNullOrWhiteSpace(authenticationInfo.State))
+				queryString.Append($"&state={authenticationInfo.State}");
+
+			if (authenticationInfo.Scopes != null && authenticationInfo.Scopes.Count > 0)
+				queryString.Append($"&scope={String.Join(" ", authenticationInfo.Scopes)}");
+
+			uriBuilder.Query = queryString.ToString();
+
+			return uriBuilder.Uri;
+		}
+
+		public async Task<OAuthAccessToken> RequestAccessTokenAsync(OAuthGrantRequest request, CancellationToken cancellationToken = default) {
 			if (request is null)
 				throw new ArgumentNullException(nameof(request));
 
@@ -90,69 +110,97 @@ namespace Deveel.Authentication {
 			return tokenCache.GetTokenAsync(tokenName, cancellationToken);
 		}
 
-		private Task<OAuthAccessToken> RequestTokenAsync(OAuthAuthenticationRequest request, CancellationToken cancellationToken) {
-			switch (request.GrantType) {
-				case OAuthGrantType.ClientCredentials: {
-						if (!(request is OAuthClientCredentialsRequest clientCredentials))
-							throw new ArgumentException("The request is invalid: must be client_credentials");
+		private Task<OAuthAccessToken> RequestTokenAsync(OAuthGrantRequest request, CancellationToken cancellationToken) {
+			try {
+				switch (request.GrantType) {
+					case OAuthGrantType.ClientCredentials: {
+							if (!(request is OAuthClientCredentialsRequest clientCredentials))
+								throw new ArgumentException("The request is invalid: must be client_credentials");
 
-						return RequestClientCredentials(clientCredentials, cancellationToken);
-					}
-				case OAuthGrantType.RefreshToken: {
-						throw new NotImplementedException();
-					}
-				case OAuthGrantType.AuthorizationCode:
-					throw new NotImplementedException();
+							return RequestWithClientCredentials(clientCredentials, cancellationToken);
+						}
+					case OAuthGrantType.RefreshToken: {
+							throw new NotImplementedException();
+						}
+					case OAuthGrantType.AuthorizationCode:
+						if (!(request is OAuthAuthorizationCodeRequest authorizationCode))
+							throw new ArgumentException("The request is invalid: must be an authorization_code");
 
-				default:
-					throw new NotSupportedException("Grant type not supported");
+						return RequestWithAuthorizationCode(authorizationCode, cancellationToken);
+
+					default:
+						throw new NotSupportedException("Grant type not supported");
+				}
+			} catch (OAuthAuthenticationException) {
+				throw;
+			} catch(Exception ex) {
+				throw new OAuthAuthenticationException("Could not authenticate because of an unknown error", ex);
 			}
 		}
 
-		private async Task<OAuthAccessToken> RequestClientCredentials(OAuthClientCredentialsRequest clientCredentials, CancellationToken cancellationToken) {
-				var scope = clientCredentials.Scopes != null && clientCredentials.Scopes.Count > 0
+		private async Task<OAuthAccessToken> GetAccessTokenAsync(object requestBody, CancellationToken cancellationToken) {
+			var content = new StringBuilder();
+			using (var writer = new StringWriter(content)) {
+				using (var jsonWriter = new JsonTextWriter(writer)) {
+					JsonSerializer.CreateDefault().Serialize(jsonWriter, requestBody);
+					jsonWriter.Flush();
+				}
+			}
+
+			var httpContent = new StringContent(content.ToString(), Encoding.UTF8, "application/json");
+			var response = await httpClient.PostAsync(Options.TokenUrl, httpContent, cancellationToken);
+
+			// TODO: emit a specialized exception here
+			if (response.StatusCode != System.Net.HttpStatusCode.OK)
+				throw new OAuthAuthenticationException($"The server responded with an error: {response.StatusCode}: {response.ReasonPhrase}");
+
+			var responseContent = await response.Content.ReadAsStringAsync();
+			var authResponse = JObject.Parse(responseContent);
+
+			if (!authResponse.TryGetValue("access_token", out var accessToken))
+				throw new OAuthAuthenticationException("The provider returned no 'access_token' in the response");
+
+			if (!authResponse.TryGetValue("token_type", out var tokenType))
+				throw new OAuthAuthenticationException("The provider returned no 'token_type' in the response");
+
+			bool? cacheAllowed = null;
+
+			if (response.Headers.TryGetValues("Cache-Control", out var cacheControl)) cacheAllowed = !string.Equals(cacheControl.ToString(), "no-store");
+
+			return new OAuthAccessToken(tokenType.ToString(), accessToken.ToString(), authResponse.Value<int?>("expires_in")) {
+				RefreshToken = authResponse.Value<string>("refresh_token"),
+				CacheAllowed = cacheAllowed
+			};
+
+		}
+
+		private Task<OAuthAccessToken> RequestWithAuthorizationCode(OAuthAuthorizationCodeRequest authorizationCode, CancellationToken cancellationToken) {
+			var requestBody = new {
+				grant_type = "authorization_code",
+				code = authorizationCode.Code,
+				redirect_uri = authorizationCode.RedirectUri.ToString(),
+				client_id = authorizationCode.ClientId,
+				client_secret = authorizationCode.ClientSecret
+			};
+
+			return GetAccessTokenAsync(requestBody, cancellationToken);
+		}
+
+		private Task<OAuthAccessToken> RequestWithClientCredentials(OAuthClientCredentialsRequest clientCredentials, CancellationToken cancellationToken) {
+			var scope = clientCredentials.Scopes != null && clientCredentials.Scopes.Count > 0
 						? string.Join(" ", clientCredentials.Scopes)
 						: null;
 
-				var requestBody = new {
-					client_id = clientCredentials.ClientId,
-					client_secret = clientCredentials.ClientSecret,
-					scope,
-					audience = clientCredentials.Audience,
-					grant_type = "client_credentials",
-				};
 
-				var content = new StringBuilder();
-				using (var writer = new StringWriter(content)) {
-					using (var jsonWriter = new JsonTextWriter(writer)) {
-						JsonSerializer.CreateDefault().Serialize(jsonWriter, requestBody);
-						jsonWriter.Flush();
-					}
-				}
+			var requestBody = new {
+				client_id = clientCredentials.ClientId,
+				client_secret = clientCredentials.ClientSecret,
+				scope,
+				audience = clientCredentials.Audience,
+				grant_type = "client_credentials",
+			};
 
-				var httpContent = new StringContent(content.ToString(), Encoding.UTF8, "application/json");
-				var response = await httpClient.PostAsync(Options.TokenUrl, httpContent, cancellationToken);
-
-				// TODO: emit a specialized exception here
-				response.EnsureSuccessStatusCode();
-
-				var responseContent = await response.Content.ReadAsStringAsync();
-				var authResponse = JObject.Parse(responseContent);
-
-				if (!authResponse.TryGetValue("access_token", out var accessToken))
-					throw new InvalidOperationException("The provider returned no 'access_token' in the response");
-
-				if (!authResponse.TryGetValue("token_type", out var tokenType))
-					throw new InvalidOperationException("The provider returned no 'token_type' in the response");
-
-				bool? cacheAllowed = null;
-
-				if (response.Headers.TryGetValues("Cache-Control", out var cacheControl)) cacheAllowed = !string.Equals(cacheControl.ToString(), "no-store");
-
-				return new OAuthAccessToken(tokenType.ToString(), accessToken.ToString(), authResponse.Value<int?>("expires_in")) {
-					RefreshToken = authResponse.Value<string>("refresh_token"),
-					CacheAllowed = cacheAllowed
-				};
+			return GetAccessTokenAsync(requestBody, cancellationToken);
 		}
 
 		public void Dispose() {

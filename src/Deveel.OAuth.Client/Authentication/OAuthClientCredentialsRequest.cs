@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 
 namespace Deveel.Authentication {
-	public class OAuthClientCredentialsRequest : OAuthAuthenticationRequest {
+	public class OAuthClientCredentialsRequest : OAuthGrantRequest {
 		public OAuthClientCredentialsRequest(string clientId, string clientSecret) {
 			if (string.IsNullOrWhiteSpace(clientId))
 				throw new ArgumentException($"'{nameof(clientId)}' cannot be null or whitespace.", nameof(clientId));

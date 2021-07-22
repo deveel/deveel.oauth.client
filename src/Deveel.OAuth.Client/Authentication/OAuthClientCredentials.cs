@@ -53,7 +53,7 @@ namespace Deveel.Authentication {
 				TokenName = tokenName
 			};
 
-			var authToken = await client.RequestAsync(authRequest, cancellationToken);
+			var authToken = await client.RequestAccessTokenAsync(authRequest, cancellationToken);
 
 			if (authToken != null)
 				request.Headers.Authorization = new AuthenticationHeaderValue(authToken.TokenType, authToken.AccessToken);
