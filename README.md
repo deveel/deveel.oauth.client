@@ -63,7 +63,7 @@ This process consists of two phases:
 1. Obtaining the URL where to redirect the user of the application
 2. Use the code returned by the authentication server to the user to obtain an access token
 
-''' csharp
+``` csharp
 var options = new OAuthClientOptions {
   AuthorizationUrl = "https://secure.example.com/authorize",
   TokenUrl = "https://secure.example.com/token"
@@ -93,7 +93,7 @@ var accessToken = client.RequestAccessToken(new OAuthAuthorizationCode(clientId,
    RedirectUri = redirectUri
 });
 
-'''
+```
 
 
 ### Microsoft Rest Service Credentials
