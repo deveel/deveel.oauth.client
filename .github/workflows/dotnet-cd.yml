@@ -1,0 +1,37 @@
+name: .NET CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x
+        
+    - name: Add Deveel GitHub NuGet Source
+      run: dotnet nuget add source "https://nuget.pkg.github.com/deveel/index.json" -n "Deveel GitHub" -u tsutomi -p ${{ secrets.DEVEEL_NUGET_TOKEN }} --store-password-in-clear-text
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build Release
+      run: dotnet build --no-restore -c Release
+      
+    - name: Test
+      run: dotnet test --no-build --verbosity normal -c Release
+
+    - name: Pack The Library
+      run: dotnet pack .\\src\\Deveel.OAuth.Client\\Deveel.OAuth.Client.csproj --configuration Release --no-restore --no-build --include-symbols --version-suffix $GITHUB_RUN_ID --output ./nuget
+
+    - name: Push Packages to GitHub NuGet
+      run: dotnet nuget push ./nuget/**/*.nupkg --skip-duplicate --api-key ${{secrets.GITHUB_TOKEN}} --source "Deveel GitHub"
