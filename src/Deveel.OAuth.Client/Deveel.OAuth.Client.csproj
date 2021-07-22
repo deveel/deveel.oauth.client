@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <RootNamespace>Deveel</RootNamespace>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <Authors>Antonello Provenzano</Authors>
+    <Company>Deveel</Company>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/deveel/deveel.oauth.client</PackageProjectUrl>
+    <PackageIcon>deveel-logo.png</PackageIcon>
+    <PackageIconUrl />
+    <RepositoryUrl>https://github.com/deveel/deveel.oauth.client</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Description>This library provides helpers to obtain access tokens from identity providers, using OAuth2 authentication flows. An implementation of the Microsoft Service Client Credentials and a token cache is also provided, to allow an efficient process of renewal of tokens and authenticating REST clients</Description>
+    <PackageTags>dotnet oauth oauth2 client access credentials</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\deveel-logo.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Options" Version="3.1.17" />
+    <PackageReference Include="Microsoft.Rest.ClientRuntime" Version="2.3.23" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+  </ItemGroup>
+
+</Project>
