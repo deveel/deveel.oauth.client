@@ -32,4 +32,14 @@ The core library is developed as a **[.NET Standard 2.1](https://github.com/dotn
 
 ### Microsoft Rest Service Credentials
 
-The library provides an implementation of the _Microsoft Rest Client Runtime_ `[ServiceClientCredentials](https://docs.microsoft.com/en-us/dotnet/api/microsoft.rest.serviceclientcredentials?view=azure-dotnet)` class, ready to be used in clients generated through the _[AuthoRest](https://github.com/azure/autorest)_ clients
+The library provides an implementation of the _Microsoft Rest Client Runtime_ `ServiceClientCredentials` ([see this](https://docs.microsoft.com/en-us/dotnet/api/microsoft.rest.serviceclientcredentials?view=azure-dotnet)) class, ready to be used in clients generated through the _[AuthoRest](https://github.com/azure/autorest)_ clients
+
+# Contribute
+
+_Do you feel something is missing and you want to improve this effort?_
+
+Feel free to open a Pull Request and I will review it and eventually approve it :)
+
+# Contact
+
+For further information and contact requests, feel free to drop me a message at _antonello at deveel dot com_
