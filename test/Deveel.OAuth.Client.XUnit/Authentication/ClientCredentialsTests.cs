@@ -36,7 +36,8 @@ namespace Deveel.Authentication {
 				};
 			});
 
-			var authClient = new OAuthAuthenticationClient(httpClient, new OAuthClientOptions { TokenUrl = "https://secure.example.com/token" });
+			var options = new OAuthClientOptions { TokenUrl = "https://secure.example.com/token" };
+			var authClient = new OAuthAuthenticationClient(httpClient, options);
 			var authResponse = await authClient.RequestAccessTokenAsync(new OAuthClientCredentialsRequest(Guid.NewGuid().ToString(), Guid.NewGuid().ToString("N")) {
 				Scopes = new[] { "read:user" }
 			});
