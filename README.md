@@ -1,3 +1,5 @@
+> :warning: This project is obsolete and for the most duplicates functions provided by the [Duende's IdentityModel](https://github.com/IdentityModel/IdentityModel), that we recommend to use instead. Differences between this library and the IdentityModel library are not enough to justify its maintainance.
+
 # Deveel OAuth2 Client Library
 
 A helper .NET library for authenticating client applications through one of the OAuth2 flows
